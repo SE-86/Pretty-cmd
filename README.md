@@ -4,11 +4,14 @@
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D6?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.9+-3776AB?logo=python)
-![UI](https://img.shields.io/badge/UI-CustomTkinter-2E7D32)
+![UI](https://img.shields.io/badge/UI-HTML%20%28pywebview%20%2F%20WebView2%29-58A6FF)
 ![Package](https://img.shields.io/badge/build-PyInstaller%20onefile-orange)
-![License](https://img.shields.io/badge/license-not%20set-lightgrey)
+![Release](https://img.shields.io/badge/version-3.0.1-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 它不是终端模拟器，而是套在 `cmd.exe` 之外的一层现代界面：你敲的每一条命令都真的交给系统执行，同时得到命令库、报错中文翻译、自动补全、以及一个**所见即所得的脚本编辑器**——批处理可以手写，也可以拖节点连成蓝图，Python 同样。
+
+整个界面由 HTML 渲染（内置 WebView2/Chromium），单文件 exe，**纯离线、免安装 Python、不上传任何数据**。
 
 ---
 
@@ -17,17 +20,20 @@
 | | |
 | --- | --- |
 | **真执行，不模拟** | 走真实子进程，维护当前目录，`cd` 跨盘符、`pushd`/`popd` 目录栈、`~` 展开全部可用 |
-| **双击即用的蓝图编程** | 类 UE5 蓝图的节点编辑器，左边点节点、右边连连线，点一下就生成可执行的批处理 / Python 源码 |
+| **双击即用的蓝图编程** | 类 UE5 蓝图的节点编辑器，左边点节点、右边连连线，一键生成可执行的批处理 / Python 源码 |
 | **报错说人话** | 命令报错后一键翻译成中文原因 + 修复建议，还能选中报错文本就地翻译替换原文 |
 | **两套脚本互不干扰** | CMD 与 Python 各有独立页面、独立代码框、独立蓝图，互不串味 |
 | **命令随叫随到** | 100+ 内置命令 + 实时扫描系统 PATH 的全部可执行文件，支持自动补全、收藏、导入导出 |
+| **现代 HTML 界面** | v3.0.0 起界面由 HTML（WebView2/Chromium）渲染，完全替代旧 tkinter 界面；深色现代化外观、高 DPI 适配 |
+| **大输出不卡** | v3.0.1 终端渲染深度优化：DOM 截断 + 合并滚动 + 批量挂载，`dir /s` 数万行输出界面依旧可响应、可随时停止 |
+| **中英双语** | 设置页一键切换，整个界面（含蓝图节点名、命令说明、报错翻译）立即重建，脚本内容不受影响 |
 | **纯离线** | 不需要账号、不联网、不上传任何内容，单文件 exe |
 
 ---
 
 ## 截图
 
-> 待补充。建议放入 3~4 张：终端主页 / CMD 蓝图 / Python 蓝图 / 报错翻译。
+> 待补充。建议放入 4~5 张：终端主页 / CMD 蓝图 / Python 蓝图 / 报错翻译 / 设置页（双语切换）。
 >
 > ```md
 > ![终端](docs/screenshot-terminal.png)
@@ -40,7 +46,13 @@
 
 ### 直接用成品（推荐）
 
-下载 Release 中的 `PrettyCmd.exe` 双击即可，**无需安装 Python**。
+下载 [Releases](https://github.com/你的用户名/Pretty-cmd/releases) 中的 `PrettyCmdSetup.exe` 双击即可，**无需安装 Python、无需安装 WebView2**（安装包内置运行时引导），自动完成：
+
+- 安装到 `%LOCALAPPDATA%\PrettyCmd`（用户级，无需管理员）
+- 注册文件关联：双击 `.pmd / .pmdb / .pmdp` 直接用 Pretty cmd 打开
+- 右键任意文件 → **用 Pretty cmd 打开**（一键唤醒）
+- 右键文件夹空白 → **在此打开 Pretty cmd 终端**（直接进入该目录）
+- 创建开始菜单快捷方式；控制面板 → **程序和功能** 可卸载（保留设置文件）
 
 > 单文件版首次启动需解压运行库，约 2~5 秒，属正常现象。
 >
@@ -49,8 +61,14 @@
 ### 从源码运行
 
 ```bash
-pip install customtkinter darkdetect
-python main.py
+pip install pywebview
+python main_web.py
+```
+
+需要 **Microsoft Edge WebView2 运行时**（Win10/11 通常已内置；缺失时程序会弹窗引导下载）。终端自检：
+
+```bash
+python main.py --selftest    # 终端引擎 + 两套蓝图编译 + i18n 词典自检（无需界面）
 ```
 
 ---
@@ -60,6 +78,12 @@ python main.py
 ### 1. 真实终端
 
 直接调用系统子进程执行命令，维护当前目录（支持 `cd` 跨盘符、`pushd`/`popd` 目录栈、`~` 展开到用户目录）、命令排队、运行中可点「停止」强制结束、↑/↓ 翻历史、Enter 发送。历史会跨重启保留。
+
+v3.0.1 起渲染性能做了深度优化，`dir /s` 这类数万行输出不再卡死界面：
+
+- **DOM 节点截断**：终端节点数恒定上限，内存不膨胀
+- **合并滚动**：一帧只滚动一次，不再每行强制全量重排
+- **批量渲染**：输出按帧批量挂载，UI 始终可响应、可停止
 
 ### 2. 快捷命令
 
@@ -103,6 +127,15 @@ python main.py
 - **自动补全**：输入时自动下拉匹配项（来自命令历史 + 内置命令 + PATH 命令），↑/↓ 选择、Tab 或回车确认、Esc 关闭。
 - **字体缩放**：Ctrl+= 放大、Ctrl+- 缩小、Ctrl+0 重置。
 
+### 7. 插件系统
+
+程序启动时自动加载安装目录 `plugins\` 下的插件：
+
+- **命令集插件（`.json`）**：一个 JSON 数组批量注册快捷命令 `[{name, cmd, desc, cat}]`
+- **功能插件（`.py`）**：提供 `register(ctx)` 函数，用 `ctx.add_command()` 注册命令、`ctx.submit()` 直接执行
+
+插件命令出现在侧边栏分类与「全部命令」页；设置页可查看加载状态、一键打开插件目录。安装包每次安装都会把《插件开发指南.md》与示例插件放进安装目录，详见该文档。
+
 ---
 
 ## 快捷键
@@ -139,54 +172,104 @@ python main.py
 
 ```
 Pretty cmd\
-├─ main.py           # 主程序（界面）
-├─ terminal_core.py  # 终端执行引擎（真实子进程）
-├─ commands_db.py    # 常用命令库 + PATH 扫描
-├─ translator.py     # 报错翻译规则库
-├─ blueprint.py      # CMD 蓝图：节点类型库 + 编译为批处理 + 自检
-├─ pyblueprint.py    # Python 蓝图：节点类型库 + 编译为 Python 源码 + 自检
-├─ bpcanvas.py       # 蓝图公共画布控件（拖拽 / 连线 / 缩放 / 撤销重做）
-├─ smoke_bp.py       # 蓝图 GUI 冒烟测试（110 条用例）
-├─ build_icon.py     # 图标生成脚本
-├─ assets\app.ico    # 应用图标
-├─ build.bat         # 一键重新打包
-└─ dist\PrettyCmd.exe  # 成品（单文件）
+├─ main_web.py        # 主程序入口：pywebview 桌面壳（HTML 界面，当前正式形态）
+├─ main.py            # 遗留：v2.2.0 tkinter 界面（已被 HTML 版替代，仅保留自检与参考）
+├─ webview2_check.py  # WebView2 运行时检测与安装引导
+├─ backend.py         # HTML 版后端 bridge（pywebview js_api，含版本号）
+├─ webui\             # HTML 前端资源
+│  ├─ index.html
+│  ├─ css\style.css
+│  └─ js\  (i18n / api / app / terminal / sidebar / editor / blueprint / commands / translator / settings)
+├─ terminal_core.py   # 终端执行引擎（真实子进程）
+├─ commands_db.py     # 常用命令库 + PATH 扫描
+├─ translator.py      # 报错翻译规则库
+├─ blueprint.py       # CMD 蓝图：节点类型库 + 编译为批处理 + 自检
+├─ pyblueprint.py     # Python 蓝图：节点类型库 + 编译为 Python 源码 + 自检
+├─ bpcanvas.py        # 遗留：tkinter 版蓝图画布（HTML 版已用 Canvas 重写）
+├─ i18n.py            # 国际化：词条字典 + tr() / is_opt()
+├─ smoke_bp.py        # 遗留：tkinter 蓝图 GUI 冒烟测试（110 条用例）
+├─ smoke_i18n.py      # 遗留：tkinter 语言切换冒烟测试（64 条用例）
+├─ smoke_install.py   # 安装/卸载/命令页回归测试（16 条用例）
+├─ build_icon.py      # 图标生成脚本
+├─ 插件开发指南.md     # 插件开发文档（安装版会复制到安装目录）
+├─ plugins\           # 插件目录（JSON 命令集 + Python 功能插件，示例已内置）
+├─ installer\         # 安装器 / 卸载器源码与 spec
+│  ├─ install_core.py      # 安装核心逻辑（文件关联/右键菜单/快捷方式/卸载信息）
+│  ├─ main_installer.py    # 安装向导（HTML 界面 + pywebview）
+│  ├─ installer_ui.html    # 安装向导前端
+│  ├─ uninstall_main.py    # 卸载逻辑（清理注册表与文件、延迟自删）
+│  ├─ PrettyCmdSetup.spec  # 安装包 PyInstaller 配置（内嵌主程序/卸载器/插件/文档）
+│  └─ PrettyCmdUninstall.spec
+├─ assets\app.ico     # 应用图标
+├─ build_web.bat      # HTML 主程序一键打包
+├─ build_installer.bat # 一键构建安装包（主程序 + 卸载器 + 安装器）
+├─ build.bat          # 遗留：tkinter 版一键打包（不再用于正式产物）
+├─ PrettyCmd.spec     # 遗留：tkinter 版 PyInstaller 配置
+├─ PrettyCmdWeb.spec  # HTML 主程序 PyInstaller 配置
+└─ dist\              # 成品目录
+   ├─ PrettyCmd.exe      # HTML 主程序（单文件，正式产物）
+   ├─ uninstall.exe      # 卸载器
+   └─ PrettyCmdSetup.exe # 一键安装包（推荐分发，内嵌 HTML 主程序 + 向导）
 ```
-
-`bpcanvas.py` 的节点库是通过构造参数注入的（`BlueprintCanvas(master, catalog=blueprint | pyblueprint)`），所以 CMD 蓝图与 Python 蓝图共用同一套画布交互，只是节点库不同。
 
 ---
 
 ## 从源码构建
 
-一键打包：
+### 一键安装包（推荐产物）
 
 ```bat
-build.bat
+build_installer.bat
 ```
 
-脚本会自动挑选装有 PyInstaller 的解释器。也可以手动执行：
+依次构建 `dist\PrettyCmd.exe` → `dist\uninstall.exe` → `dist\PrettyCmdSetup.exe`。
+
+安装包内嵌 **HTML 界面主程序 `PrettyCmd.exe`** 与 HTML 安装向导，不依赖 tkinter。
+
+### HTML 主程序
+
+```bat
+build_web.bat
+```
+
+等价命令：
 
 ```bash
-python -m PyInstaller --noconfirm --clean --onefile --windowed \
-  --name "PrettyCmd" --icon "assets\app.ico" \
-  --collect-all customtkinter --distpath dist --workpath build main.py
+python -m PyInstaller --noconfirm --clean --distpath dist --workpath build PrettyCmdWeb.spec
 ```
 
-> `--collect-all customtkinter` 不能省略，否则主题 JSON 与字体资源不会进包，运行时会崩溃。
+**运行依赖**：`pip install pywebview`，且系统需有 **Microsoft Edge WebView2 运行时**。
 
-产物输出到 `dist\PrettyCmd.exe`。
+启动行为（已做防护）：
+
+| 情况 | 表现 |
+|---|---|
+| WebView2 缺失 | 启动前拦截，弹窗说明原因 + 一键打开官方下载页，不再白屏 |
+| 渲染层异常 / 窗口迟迟不就绪 | 25 秒超时后销毁窗口，给出可读诊断并退出，不再无限卡着 |
+| 正常 | 打开 HTML 界面 |
+
+### 安装包
+
+```bash
+python -m PyInstaller --noconfirm --clean --distpath dist --workpath build installer\PrettyCmdSetup.spec
+```
 
 ---
 
 ## 测试
 
 ```bash
-python main.py --selftest        # 终端引擎 + 两套蓝图编译自检
-python blueprint.py               # CMD 蓝图自检（含真实 cmd 执行）
-python pyblueprint.py             # Python 蓝图自检（含 Python 语法校验）
-python smoke_bp.py                # GUI 冒烟测试，110 条用例（需要 tkinter + customtkinter）
+python main.py --selftest            # 终端引擎 + 两套蓝图编译 + i18n 词典自检
+python blueprint.py                   # CMD 蓝图自检（含真实 cmd 执行）
+python pyblueprint.py                 # Python 蓝图自检（含 Python 语法校验）
+python main_web.py --autotest-term    # 终端大输出性能自检（12000 行输出，验证 DOM 截断）
+python smoke_install.py               # 安装/卸载/命令页回归测试，16 条用例
 ```
+
+> - `main.py --selftest` 不需要界面即可运行（引擎与编译器自检）。
+> - `main_web.py --autotest-term` 启动窗口后自动注入 12000 行输出并计时，结果写 `_autotest_term.json`（v3.0.1 实测约 1.3s，DOM 节点恒 ≤2600）。
+> - `smoke_install.py` 会在临时目录做一次真实的「安装 → 校验 → 卸载 → 确认目录已删」闭环，并写入/清理 `HKCU\...\Uninstall\PrettyCmd` 注册表项。跑完请确认该项已被删除。
+> - `smoke_bp.py` / `smoke_i18n.py` 为 tkinter 时代遗留，仅在旧版环境可用。
 
 ---
 
@@ -200,4 +283,4 @@ python smoke_bp.py                # GUI 冒烟测试，110 条用例（需要 tk
 
 ## 许可
 
-本项目尚未包含开源许可文件。如需开放源码再分发，请先添加 `LICENSE`（如 MIT / Apache-2.0）并在本节说明。
+本项目按 **MIT License** 发布（LICENSE 文件随首次 Release 添加）。若你更倾向 Apache-2.0 / GPL-3.0 或保留所有权利，在发布前改好 `LICENSE` 与上方 badge 即可。
